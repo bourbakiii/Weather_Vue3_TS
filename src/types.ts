@@ -6,3 +6,6 @@ export type UserData = {
     city: City | null;
   };
   
+  export type Option = {
+    
+  }

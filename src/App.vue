@@ -4,10 +4,15 @@
   {{ user }}
   <br />
   <button>Add one</button>
- 
+
   <br>
 
-
+  <search-and-select @input="getCitiesTimeout()" :options="founded_cities" placeholder="Some placeholder right here"
+    v-model="selected_city" />
+  <br>
+  <br>
+  <br>
+  {{ selected_city }}
 </template>
 
 <script setup lang="ts">
@@ -15,6 +20,7 @@ import { onMounted, ref } from "vue";
 import axios from "axios";
 import type { City, UserData } from "./types";
 import { computed } from "@vue/reactivity";
+import SearchAndSelect from "./components/SearchAndSelect.vue";
 const DADATA_TOKEN: string = "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f";
 const DADATA_SECRET: string = "1daedeefd4a830570ab68aa596f23ef0f1bb13f2";
 const WEATHER_TOKEN: string = "6e56f1241cca1b4833c6f6787535e97e";
@@ -23,18 +29,15 @@ const founded_cities = ref<City[]>(Array());
 const city_query = ref(String("В"));
 const user = ref<UserData>({ ip: null, city: null });
 
-const computed_founded_cities = computed(()=>founded_cities.value.map(({id,name})=>({value:id, text: name})));
-const selected_city = {
-          value: '',
-          text: ''
-        }
+let selected_city: City = {} as City;
 
 onMounted(async () => {
   user.value.ip = (await getIP()) as string;
   user.value.city = await getUserCityParameters();
-
+  selected_city = user.value.city;
+  console.log("selected city");
+  console.log(user.value.city);
   getWeatherByCoordinates(user.value.city);
-
   founded_cities.value = await getCitiesTimeoutHandler(city_query.value);
 });
 
@@ -44,7 +47,6 @@ async function getWeatherByCoordinates<
   const { data: response_data } = await axios.get(
     `https://api.openweathermap.org/data/2.5/weather?lat=${city.geo_lat}&lon=${city.geo_lon}&appid=${WEATHER_TOKEN}`
   );
-  console.log(response_data);
 }
 
 async function getIP(): Promise<string> {
@@ -66,12 +68,12 @@ async function getUserCityParameters() {
   };
 }
 
-async function getCitiesTimeoutHandler(query:string) {
+async function getCitiesTimeoutHandler(query: string = city_query.value) {
   const response = await axios
     .post(
       "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address",
       {
-        query: city_query.value,
+        query,
         from_bound: { value: "city" },
         to_bound: { value: "city" },
       },
@@ -83,32 +85,28 @@ async function getCitiesTimeoutHandler(query:string) {
         },
       }
     )
-    console.log("the data is:");
-    console.log(response.data);
-      return (response?.data.suggestions.map(
-        ({ data: { fias_id, city, geo_lat, geo_lon } }: any) =>
-          ({id: fias_id, name: city, geo_lat, geo_lon })
-      )??[]) as City[];
-
+  return (response?.data.suggestions.map(
+    ({ data: { fias_id, city, geo_lat, geo_lon } }: any) =>
+      ({ id: fias_id, name: city, geo_lat, geo_lon })
+  ) ?? []) as City[];
 }
 
- function debounce(fn: Function, delay: number): Function {
-  let timeoutID:NodeJS.Timeout;
-  return function(this: any, ...args: any[]) {
+function debounce(fn: Function, delay: number): Function {
+  let timeoutID: NodeJS.Timeout;
+  return function (this: any, ...args: any[]) {
     clearTimeout(timeoutID);
     timeoutID = setTimeout(() => fn.apply(this, args), delay);
   };
 }
 
-const getCitiesTimeout:any = debounce(getCitiesTimeoutHandler, 2500);
-
-async function setFoundedCities(){
-  founded_cities.value = await getCitiesTimeoutHandler(city_query.value);
-  console.log(founded_cities);
-}
+const getCitiesTimeout: any = debounce(async ()=> founded_cities.value = await getCitiesTimeoutHandler(), 350);
 
 
-function loggy(){
-  console.log('here we go again');
-}
 </script>
+
+
+<style lang="scss">
+body {
+  background-color: #fcfcfc;
+}
+</style>
