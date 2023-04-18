@@ -6,7 +6,6 @@
   <button>Add one</button>
  
   <br>
-<ModelSelect @searchchange="setFoundedCities" v-model="selected_city" :options="computed_founded_cities"/>
 
 
 </template>
@@ -15,7 +14,6 @@
 import { onMounted, ref } from "vue";
 import axios from "axios";
 import type { City, UserData } from "./types";
-import { ModelSelect } from 'vue-search-select'
 import { computed } from "@vue/reactivity";
 const DADATA_TOKEN: string = "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f";
 const DADATA_SECRET: string = "1daedeefd4a830570ab68aa596f23ef0f1bb13f2";
