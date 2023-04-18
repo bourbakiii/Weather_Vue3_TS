@@ -4,15 +4,9 @@
   {{ user }}
   <br />
   <button>Add one</button>
- <input
-    type="text"
-    name="city-query"
-    id="city-query-input"
-    v-model="city_query"
-    @input="setFoundedCities"
-  /> 
+ 
   <br>
-{{ founded_cities }}
+<ModelSelect @searchchange="setFoundedCities" v-model="selected_city" :options="computed_founded_cities"/>
 
 
 </template>
@@ -21,6 +15,8 @@
 import { onMounted, ref } from "vue";
 import axios from "axios";
 import type { City, UserData } from "./types";
+import { ModelSelect } from 'vue-search-select'
+import { computed } from "@vue/reactivity";
 const DADATA_TOKEN: string = "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f";
 const DADATA_SECRET: string = "1daedeefd4a830570ab68aa596f23ef0f1bb13f2";
 const WEATHER_TOKEN: string = "6e56f1241cca1b4833c6f6787535e97e";
@@ -28,6 +24,13 @@ const ICON_URL = ref<string>(String());
 const founded_cities = ref<City[]>(Array());
 const city_query = ref(String("В"));
 const user = ref<UserData>({ ip: null, city: null });
+
+const computed_founded_cities = computed(()=>founded_cities.value.map(({id,name})=>({value:id, text: name})));
+const selected_city = {
+          value: '',
+          text: ''
+        }
+
 onMounted(async () => {
   user.value.ip = (await getIP()) as string;
   user.value.city = await getUserCityParameters();
@@ -56,9 +59,9 @@ async function getUserCityParameters() {
     "https://suggestions.dadata.ru/suggestions/api/4_1/rs/iplocate/address",
     { ip: user.value.ip },
     { headers: { Authorization: `Token ${DADATA_TOKEN}` } }
-    // https://openweathermap.org/img/wn/10d@2x.png
   );
   return {
+    id: response.data.location.data.fias_id,
     name: response.data.location.data.settlement,
     geo_lon: response.data.location.data.geo_lon,
     geo_lat: response.data.location.data.geo_lat,
@@ -82,9 +85,11 @@ async function getCitiesTimeoutHandler(query:string) {
         },
       }
     )
+    console.log("the data is:");
+    console.log(response.data);
       return (response?.data.suggestions.map(
-        ({ data: { city, geo_lat, geo_lon } }: any) =>
-          ({ name: city, geo_lat, geo_lon })
+        ({ data: { fias_id, city, geo_lat, geo_lon } }: any) =>
+          ({id: fias_id, name: city, geo_lat, geo_lon })
       )??[]) as City[];
 
 }
@@ -101,5 +106,11 @@ const getCitiesTimeout:any = debounce(getCitiesTimeoutHandler, 2500);
 
 async function setFoundedCities(){
   founded_cities.value = await getCitiesTimeoutHandler(city_query.value);
+  console.log(founded_cities);
+}
+
+
+function loggy(){
+  console.log('here we go again');
 }
 </script>
