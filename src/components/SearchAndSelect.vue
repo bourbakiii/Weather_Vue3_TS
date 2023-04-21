@@ -1,6 +1,6 @@
 <template>
     <div class="search-and-select">
-        <input v-bind="{ placeholder: $attrs.placeholder }" :value="$attrs.modelValue" @input="updateModelValue" type="text"
+        <input @focusout="emit('focusout')" v-bind="{ placeholder: $attrs.placeholder }" :value="$attrs.modelValue" @input="updateModelValue" type="text"
             class="search-and-select__input" />
         <div class='search-and-select__options'>
             <button @mousedown="selectCity(item)" v-for="item in $props.options"
@@ -75,7 +75,7 @@ input:focus~.search-and-select__options {
 <script setup lang="ts">
 import { PropType } from 'vue';
 import { City } from '../types';
-const emit = defineEmits(['update:modelValue', 'select'])
+const emit = defineEmits(['update:modelValue', 'select', 'focusout'])
 const updateModelValue = ({ target: { value = null } }) => emit('update:modelValue', value);
 const selectCity = (item:City) => emit('select', item);
 defineProps({
@@ -84,7 +84,4 @@ defineProps({
         type: Object as PropType<City[]>
     }
 });
-// function selectOption(item: City) {
-//     module
-// }
 </script>

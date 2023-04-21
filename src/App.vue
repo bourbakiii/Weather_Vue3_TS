@@ -1,50 +1,78 @@
 <template>
-  Some text right there
+  IP ---  {{ USER_IP }}
   <br />
-  {{ user }}
   <br />
-  <button>Add one</button>
-
-  <br>
+  <br />
   {{ selected_city }}
-  <br>
-  <search-and-select @input="getCitiesTimeout()" :options="founded_cities" placeholder="Some placeholder right here"
+
+
+  <br />
+  <br />
+  <br />
+
+
+  <search-and-select @focusout="city_query=selected_city.name" @input="getCitiesTimeout()" :options="founded_cities" placeholder="Some placeholder right here"
     v-model="city_query" @select="selectCity" />
 
 
-    <br>
-    {{ selected_city }}
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import axios from "axios";
-import type { City, UserData } from "./types";
+import type { City } from "./types";
 import SearchAndSelect from "./components/SearchAndSelect.vue";
-const DADATA_TOKEN: string = "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f";
-const DADATA_SECRET: string = "1daedeefd4a830570ab68aa596f23ef0f1bb13f2";
-const WEATHER_TOKEN: string = "6e56f1241cca1b4833c6f6787535e97e";
+import { Weather } from './types';
+const TOKENS:{ [key:string] :string } = {
+  'DADATA': "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f",
+  'DADATA_SECRET': "1daedeefd4a830570ab68aa596f23ef0f1bb13f",
+  'WEATHER': "6e56f1241cca1b4833c6f6787535e97e"
+};
 const ICON_URL = ref<string>(String());
 const founded_cities = ref<City[]>(Array());
 const city_query = ref<string>(String("В"));
-const user = ref<UserData>({ ip: null, city: null });
+let USER_IP: (string|null) = null;
 
 let selected_city = ref<City>({} as City);
 const selectCity = (item:City) => selected_city.value = item;
 onMounted(async () => {
-  user.value.ip = (await getIP()) as string;
-  user.value.city = await getUserCityParameters();
-  selected_city.value = user.value.city;
-  getWeatherByCoordinates(user.value.city);
+  USER_IP = (await getIP()) as string;
+  selected_city.value = await getCityByIP();
   founded_cities.value = await getCitiesTimeoutHandler(city_query.value);
 });
 
-async function getWeatherByCoordinates<
+
+watch(selected_city, async (setted_city:City)=>{
+  city_query.value = setted_city.name;
+  setted_city.weather = await getWeather(setted_city)
+});
+
+async function getWeather<
   T extends { name: string; geo_lat: string; geo_lon: string }
->(city: T) {
+>(city: T): Promise<Weather> {
   const { data: response_data } = await axios.get(
-    `https://api.openweathermap.org/data/2.5/weather?lat=${city.geo_lat}&lon=${city.geo_lon}&appid=${WEATHER_TOKEN}`
+    `https://api.openweathermap.org/data/2.5/weather?lat=${city.geo_lat}&lon=${city.geo_lon}&appid=${TOKENS.WEATHER}`
   );
+  
+  const weather: Weather = {
+    feels_like: response_data.main.feels_like,
+    humidity: response_data.main.humidity,
+    sea_level: response_data.main.sea_level,
+    temperature:{
+      current: response_data.main.temp,
+      minimum: response_data.main.temp_min,
+      maximum: response_data.main.temp_max,
+    },
+    pressure: response_data.main.pressure,
+
+    sunset:  response_data.sys.sunset,
+    sunrise: response_data.sys.sunrise,
+    icon: response_data.weather[0].icon,
+    description: response_data.weather[0].description, 
+    main: response_data.weather[0].main,
+    wind: response_data.wind
+  };
+  return weather;
 }
 
 async function getIP(): Promise<string> {
@@ -52,11 +80,11 @@ async function getIP(): Promise<string> {
   return response.data.split("\n")[2].substring(3, 1000);
 }
 
-async function getUserCityParameters() {
+async function getCityByIP() {
   const response = await axios.post(
     "https://suggestions.dadata.ru/suggestions/api/4_1/rs/iplocate/address",
-    { ip: user.value.ip },
-    { headers: { Authorization: `Token ${DADATA_TOKEN}` } }
+    { ip:USER_IP },
+    { headers: { Authorization: `Token ${TOKENS.DADATA}` } }
   );
   console.log(response.data.location)
   return {
@@ -79,8 +107,8 @@ async function getCitiesTimeoutHandler(query: string = city_query.value) {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Token ${DADATA_TOKEN}`,
-          "X-Secret": DADATA_SECRET,
+          Authorization: `Token ${TOKENS.DADATA}`,
+          "X-Secret": TOKENS.DADATA_SECRET,
         },
       }
     )
