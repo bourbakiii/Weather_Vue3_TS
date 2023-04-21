@@ -1,8 +1,10 @@
 <template>
     <div class="search-and-select">
-        <input v-bind="{placeholder: $attrs.placeholder}" :value="$attrs?.modelValue?.name || null" type="text" class="search-and-select__input" />
+        <input v-bind="{ placeholder: $attrs.placeholder }" :value="$attrs.modelValue" @input="updateModelValue" type="text"
+            class="search-and-select__input" />
         <div class='search-and-select__options'>
-            <button @click="selectOption" v-for="item in $props.options" class="search-and-select-option option">
+            <button @mousedown="selectCity(item)" v-for="item in $props.options"
+                class="search-and-select-option option">
                 {{ item.name }}
             </button>
         </div>
@@ -12,6 +14,7 @@
 <style lang="scss" scoped>
 .search-and-select {
     position: relative;
+
     &__options {
         position: absolute;
         top: 100%;
@@ -63,7 +66,7 @@ input {
     }
 }
 
-input:focus~.search-and-select__options{
+input:focus~.search-and-select__options {
     visibility: visible;
 }
 </style>
@@ -72,13 +75,16 @@ input:focus~.search-and-select__options{
 <script setup lang="ts">
 import { PropType } from 'vue';
 import { City } from '../types';
+const emit = defineEmits(['update:modelValue', 'select'])
+const updateModelValue = ({ target: { value = null } }) => emit('update:modelValue', value);
+const selectCity = (item:City) => emit('select', item);
 defineProps({
     options: {
         required: true,
         type: Object as PropType<City[]>
     }
 });
-function selectOption() {
-    console.log("Select option");
-}
+// function selectOption(item: City) {
+//     module
+// }
 </script>

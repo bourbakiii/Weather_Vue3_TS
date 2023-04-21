@@ -6,37 +6,35 @@
   <button>Add one</button>
 
   <br>
-
-  <search-and-select @input="getCitiesTimeout()" :options="founded_cities" placeholder="Some placeholder right here"
-    v-model="selected_city" />
-  <br>
-  <br>
-  <br>
   {{ selected_city }}
+  <br>
+  <search-and-select @input="getCitiesTimeout()" :options="founded_cities" placeholder="Some placeholder right here"
+    v-model="city_query" @select="selectCity" />
+
+
+    <br>
+    {{ selected_city }}
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import axios from "axios";
 import type { City, UserData } from "./types";
-import { computed } from "@vue/reactivity";
 import SearchAndSelect from "./components/SearchAndSelect.vue";
 const DADATA_TOKEN: string = "7fda5aeb952635eb6b827e0d1e8a5d28713aab5f";
 const DADATA_SECRET: string = "1daedeefd4a830570ab68aa596f23ef0f1bb13f2";
 const WEATHER_TOKEN: string = "6e56f1241cca1b4833c6f6787535e97e";
 const ICON_URL = ref<string>(String());
 const founded_cities = ref<City[]>(Array());
-const city_query = ref(String("В"));
+const city_query = ref<string>(String("В"));
 const user = ref<UserData>({ ip: null, city: null });
 
-let selected_city: City = {} as City;
-
+let selected_city = ref<City>({} as City);
+const selectCity = (item:City) => selected_city.value = item;
 onMounted(async () => {
   user.value.ip = (await getIP()) as string;
   user.value.city = await getUserCityParameters();
-  selected_city = user.value.city;
-  console.log("selected city");
-  console.log(user.value.city);
+  selected_city.value = user.value.city;
   getWeatherByCoordinates(user.value.city);
   founded_cities.value = await getCitiesTimeoutHandler(city_query.value);
 });
@@ -60,9 +58,10 @@ async function getUserCityParameters() {
     { ip: user.value.ip },
     { headers: { Authorization: `Token ${DADATA_TOKEN}` } }
   );
+  console.log(response.data.location)
   return {
     id: response.data.location.data.fias_id,
-    name: response.data.location.data.settlement,
+    name: response.data.location.data.city||response.data.location.data.settlement,
     geo_lon: response.data.location.data.geo_lon,
     geo_lat: response.data.location.data.geo_lat,
   };
